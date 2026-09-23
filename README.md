@@ -98,8 +98,8 @@ one short `AGENTS.md` plus code with only WHY comments.
 **Hygiene Rules** (`extensions/hygiene-rules.ts`) appends a ~1.5 KB rule block to the system prompt
 of every turn: comment only WHY / business rules / warnings, the only lasting md file is `AGENTS.md`
 (max 200 lines / 16,000 characters), PLAN.md and TODO.md are temporary, one place per fact, remove
-dead code, and work on a task branch instead of main. Pi packages cannot ship an AGENTS.md, so the
-rules come from an extension.
+dead code, and work on a task branch instead of main (never switching branches in a folder another
+agent may use). Pi packages cannot ship an AGENTS.md, so the rules come from an extension.
 
 **Hygiene Guard** (`extensions/hygiene-guard.ts`) checks every `write`/`edit` call and blocks it
 with a reason that says what to do instead:
@@ -112,6 +112,32 @@ with a reason that says what to do instead:
   yet, Obsidian vaults.
 
 Known gap: files created through `bash`/`powershell` are not checked. The rules and Done-Gate cover that.
+
+## Parallel agents (one git worktree per task)
+
+To run 2–3 Pi sessions on one repo at the same time (e.g. one per dashboard tab), give each its own
+folder with `git worktree`. A folder can only have one branch checked out, so sessions sharing a
+folder would switch branches under each other. Worktrees share one repo, so merging stays easy.
+
+From the main project folder, create one worktree per task:
+```powershell
+git worktree add ..\fx-dashboard-usdjpy -b usdjpy-tab
+```
+Open a new Windows Terminal tab, go there and start Pi:
+```powershell
+cd ..\fx-dashboard-usdjpy; pi
+```
+When you tell the agent "OK, merge", it merges its branch in the folder that has main checked out
+(Hygiene Rules tell it how). Then remove the worktree:
+```powershell
+git worktree remove ..\fx-dashboard-usdjpy
+```
+- Sessions never overwrite each other's files, but two branches that change the same file can conflict
+  at merge time. The second merge resolves it. Keep each task mostly in its own files and merge often.
+- To pick up the others' merged work, tell the agent to run `git merge main` in its folder.
+- Gitignored files (`.venv`, `.env`, data) are not in a new worktree. Create a venv there or reuse the main one.
+- Hygiene Guard checks the branch of each file's own folder, so worktrees on task branches are allowed
+  while the main folder stays protected.
 
 ## Adapting at work (ADAPT checklist)
 

@@ -7,7 +7,7 @@ export const RULES = `## Project hygiene
 - PLAN.md and TODO.md are temporary: create them only for multi-step tasks and delete them when the task is done.
 - Where a fact goes: local to one place in code -> WHY comment next to it; project-wide -> AGENTS.md; stale or finished -> delete. Never duplicate a fact.
 - Remove dead code you replace. Do not leave old versions around.
-- Git: before your first edit in a repo on main/master, create a short task branch (e.g. \`git switch -c fix-usdjpy-chart\`). Commit in small steps. When the user says OK, merge into main locally and push.`;
+- Git: never edit on main/master. If you are on main, create a short task branch before your first edit (e.g. \`git switch -c fix-usdjpy-chart\`). If the folder is already on a task branch, stay on it: other agents may work in sibling worktrees of the same repo at the same time, so never switch branches in a folder you did not branch yourself. Commit in small steps. When the user says OK, merge: find the folder that has main checked out (\`git worktree list\`), run \`git -C <that folder> merge <your-branch>\`, resolve conflicts, and push if a remote exists.`;
 
 export function withRules(systemPrompt: string): string {
 	// Guard against double-appending if Pi ever hands back an already-extended prompt.
