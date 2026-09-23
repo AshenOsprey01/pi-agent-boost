@@ -6,3 +6,7 @@ test/tmp/
 __pycache__/
 .env
 auth.json
+
+# Personal build notes (kept locally, not published)
+PLAN.md
+TODO.md

@@ -55,4 +55,4 @@ The loader shows which model was picked and why. The final notice shows the cost
 `test/prompt-sharpener.test.ts` (model ranking, context truncation, output cleaning).
 `test/sharpen-harness.ts` runs the real model call in print mode on 0.84.4 and 0.87.1. Errors
 (e.g. a 404 from the provider) are reported, not swallowed. Shortcuts and the loader need a
-manual check (see TODO.md).
+manual check: `alt+e` on a draft, then `alt+shift+e`, and Esc during the loader.

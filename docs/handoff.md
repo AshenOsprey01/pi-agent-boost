@@ -47,4 +47,4 @@ optional model override, errors shown instead of silently reported as "Cancelled
 
 ## Tested
 `test/handoff-harness.ts` drafts a handoff from a real `-p` conversation on both versions.
-Opening the new session needs a manual check (see TODO.md).
+Opening the new session is checked by hand: run `/handoff <goal>` after a short chat.
