@@ -1,0 +1,8 @@
+node_modules/
+.compat/
+.venv/
+test/tmp/
+*.db
+__pycache__/
+.env
+auth.json
