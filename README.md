@@ -16,6 +16,7 @@ Tested on Pi **0.84.4** and **0.87.1** (Windows 11).
 | Output Trimmer | extension | Caps large `bash`/`powershell` outputs at ~6 KB for the model and points to the full output file | [docs/output-trimmer.md](docs/output-trimmer.md) |
 | Handoff | extension | `/handoff <next task>` opens a new session with a drafted, focused prompt from the live conversation | [docs/handoff.md](docs/handoff.md) |
 | Auditor | subagent definition | Read-only, fresh-context numbers checker: recomputes key figures, checks FX/Rates traps | [docs/auditor.md](docs/auditor.md) |
+| Hygiene Rules | extension | Adds short project-hygiene rules (comments, one AGENTS.md, temporary PLAN/TODO, task branches) to every session | [Project hygiene](#project-hygiene) |
 | Snippets | `.md` files | Show evidence · Finish everything · Number hygiene, for a prompt-snippets extension | [snippets/](snippets/) |
 
 ### Keys and commands
@@ -73,6 +74,7 @@ No config files. Everything is optional, set through environment variables start
 | `PI_BOOST_PEEK_SQL_ROWS` | Data Peek | 50,000 | Max SQL rows fetched for a profile |
 | `PI_BOOST_TRIM_BYTES` | Output Trimmer | 8000 | Trim shell outputs larger than this; `0` disables |
 | `PI_BOOST_HANDOFF_MODEL` | Handoff | session model | `provider/modelId` of a cheaper drafting model |
+| `PI_BOOST_RULES` | Hygiene Rules | on | `off` stops adding the hygiene rules to the system prompt |
 
 Set one for your user account (new terminals pick it up; restart Pi afterwards):
 ```powershell
@@ -84,6 +86,18 @@ $env:PI_BOOST_TRIM_BYTES = "12000"
 ```
 Keep `PI_BOOST_DB_URL` out of files you commit. If it holds a password, prefer a driver option
 that uses Windows authentication.
+
+## Project hygiene
+
+Agents tend to fill projects with comments that restate the code and with md files (PLAN, TODO,
+DECISIONS, CHANGELOG...) that go stale and mislead the next agent. These parts keep a project at
+one short `AGENTS.md` plus code with only WHY comments.
+
+**Hygiene Rules** (`extensions/hygiene-rules.ts`) appends a ~1.5 KB rule block to the system prompt
+of every turn: comment only WHY / business rules / warnings, the only lasting md file is `AGENTS.md`
+(max 200 lines / 16,000 characters), PLAN.md and TODO.md are temporary, one place per fact, remove
+dead code, and work on a task branch instead of main. Pi packages cannot ship an AGENTS.md, so the
+rules come from an extension.
 
 ## Adapting at work (ADAPT checklist)
 
