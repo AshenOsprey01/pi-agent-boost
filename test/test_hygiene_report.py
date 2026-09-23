@@ -63,8 +63,9 @@ check("js: header + commented code", a["header"] and a["commented_code"] == 1, a
 HTML = "<html>\n<!-- nav bar -->\n<script>\n// init chart\nlet x = 1;\n</script>\n</html>\n"
 check("html: <!-- --> and script comments", hr.html_comments(HTML) == [(2, "nav bar"), (4, "init chart")], hr.html_comments(HTML))
 
-check("comment heuristics: prose is not code", not hr.CODE_RE.search("keep this order: settlement depends on it"))
-check("comment heuristics: code is code", all(hr.CODE_RE.search(s) for s in ["x = compute(y)", "print(total)", "return x", "foo.bar(1)"]))
+check("comment heuristics: prose is not code",
+      not any(hr.CODE_RE.search(s) for s in ["keep this order: settlement depends on it", "return the result", "import the dashboard"]))
+check("comment heuristics: code is code", all(hr.CODE_RE.search(s) for s in ["x = compute(y)", "print(total)", "return x", "foo.bar(1)", "import os", "from a import b", "console.log(rows);"]))
 
 # md inventory and skip dirs
 (tmp / "AGENTS.md").write_text("a\n" * 250)

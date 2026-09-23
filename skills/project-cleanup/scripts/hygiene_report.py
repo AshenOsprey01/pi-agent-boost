@@ -25,7 +25,7 @@ REPORT_CAP = 4096
 
 TODO_RE = re.compile(r"\b(TODO|FIXME|XXX|HACK)\b")
 CODE_RE = re.compile(
-    r"^(def |class |return\b|import |from \S+ import|if .*:$|elif |else:|for .*:$|while .*:$|try:|except\b|print\(|"
+    r"^(def |class |return( \S+)?$|return .*[-+*/%(\[]|import [\w.]+(, [\w.]+)*$|import .* from |from \S+ import|if .*:$|elif |else:|for .*:$|while .*:$|try:|except\b|print\(|"
     r"const |let |var |function\b|console\.|await |\}|\{$|<\w+[ >/])"
     r"|[;{]$|^[\w.\[\]'\"]+ ?[-+*/]?= ?\S|^\w+(\.\w+)*\(.*\)$"
 )
@@ -114,7 +114,7 @@ COMMENT_FINDERS = {"python": py_comments, "js": js_comments, "html": html_commen
 
 
 def has_header(comments: list[tuple[int, str]], text: str) -> bool:
-    """A comment/docstring block of 3+ lines at the top of the file (after shebang/encoding lines)."""
+    """A comment/docstring block of 2+ lines at the top of the file (after shebang/encoding lines)."""
     lines = text.split("\n")
     first = next((i for i, ln in enumerate(lines, 1)
                   if ln.strip() and not ln.startswith("#!") and not re.match(r"#.*coding[:=]", ln)), None)
@@ -124,7 +124,7 @@ def has_header(comments: list[tuple[int, str]], text: str) -> bool:
     run = 0
     while first + run in lines_with or (first + run <= len(lines) and lines[first + run - 1].strip() in ('"""', "'''")):
         run += 1
-    return run >= 3
+    return run >= 2
 
 
 def analyse_file(path: Path, lang: str) -> dict:

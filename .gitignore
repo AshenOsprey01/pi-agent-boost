@@ -8,5 +8,5 @@ __pycache__/
 auth.json
 
 # Personal build notes (kept locally, not published)
-PLAN.md
-TODO.md
+/PLAN.md
+/TODO.md
