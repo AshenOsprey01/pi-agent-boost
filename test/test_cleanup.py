@@ -38,8 +38,8 @@ MUST_GO = [
     ("web/api.js", "Written by"), ("web/dashboard.js", "TODO"), ("web/dashboard.js", "console.log"),
     ("web/dashboard.js", "oldFormatter"), ("web/index.html", "old-chart"), ("web/index.html", "page title"),
 ]
-AGENTS_MUST = [r"USD", r"bps", r"unittest"]
-AGENTS_MUST_NOT = [r"[├└]", r"legacy_mid_price", r"(?i)pandas", r"Always update PLAN", r"(?i)largest first|descending"]
+AGENTS_MUST = [r"USD", r"bps", r"unittest", r"run\.py"]
+AGENTS_MUST_NOT = [r"[├└]", r"legacy_mid_price", r"(?i)\buse[sd]? pandas|pandas (for|to|chosen|is)", r"Always update PLAN", r"(?i)largest first|descending"]
 
 
 def git(*args, cwd=WORK):
@@ -96,6 +96,8 @@ def run_check():
     check("compileall ok", r.returncode == 0, r.stdout + r.stderr)
     r = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=WORK, capture_output=True, text=True)
     check("project tests pass", r.returncode == 0, r.stderr[-300:])
+    r = subprocess.run([sys.executable, "run.py"], cwd=WORK, capture_output=True, text=True)
+    check("entry point run.py still works", r.returncode == 0 and "desk total bps: 20.04" in r.stdout, r.stdout + r.stderr)
 
     log = git("log", "--all", "--format=%H %s")
     comment_commits = [ln.split(" ", 1) for ln in log.splitlines() if ln.split(" ", 1)[1].startswith("cleanup: comments")]
@@ -108,6 +110,8 @@ def run_check():
         check(f"commit {subject!r}", subject in log, log)
     check("cleanup/* branch exists", re.search(r"cleanup/", git("branch", "--list")), git("branch", "--list"))
     check("working tree clean", git("status", "--porcelain").strip() == "", git("status", "--porcelain"))
+    check("progress file removed", not (WORK / ".git/cleanup-todo.txt").exists())
+    check("no build artifacts committed", "__pycache__" not in git("ls-files"), git("ls-files"))
     print(f"\n{'ALL PASS' if not failures else f'{failures} FAILED'}")
     return 1 if failures else 0
 

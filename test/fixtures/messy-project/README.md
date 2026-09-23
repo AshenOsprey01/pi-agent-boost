@@ -7,5 +7,10 @@ A small dashboard that shows FX revenue per trade.
 python -m unittest discover -s tests
 ```
 
+## Running
+```
+python run.py data/sample_trades.csv
+```
+
 ## Viewing the dashboard
 Serve the `web/` folder with any static server, e.g. `python -m http.server -d web`.

@@ -40,8 +40,10 @@ def load_trades(path):
             trades.append({
                 "trade_id": row["trade_id"],
                 "pair": row["pair"],
+                "side": row["side"],
                 "notional": float(row["notional"]),
                 "rate": float(row["rate"]),
+                "mid": float(row["mid"]),
                 "value_date": value_date,
             })
     # return the list of trades

@@ -3,9 +3,17 @@
   "version": "0.1.0",
   "description": "Small Pi tools for better, faster agent output with less prompting",
   "license": "MIT",
-  "keywords": ["pi-package"],
+  "keywords": [
+    "pi-package"
+  ],
   "pi": {
-    "extensions": ["./extensions/*.ts", "./extensions/data-peek/index.ts"]
+    "extensions": [
+      "./extensions/*.ts",
+      "./extensions/data-peek/index.ts"
+    ],
+    "skills": [
+      "./skills"
+    ]
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

@@ -18,6 +18,7 @@ Tested on Pi **0.84.4** and **0.87.1** (Windows 11).
 | Auditor | subagent definition | Read-only, fresh-context numbers checker: recomputes key figures, checks FX/Rates traps | [docs/auditor.md](docs/auditor.md) |
 | Hygiene Rules | extension | Adds short project-hygiene rules (comments, one AGENTS.md, temporary PLAN/TODO, task branches) to every session | [Project hygiene](#project-hygiene) |
 | Hygiene Guard | extension | Blocks new stray md files, an AGENTS.md over the cap, and edits on main/master | [Project hygiene](#project-hygiene) |
+| Project Cleanup | skill + Python | One-time staged cleanup of a project: md files → one AGENTS.md, restating comments out, dead code out | [Project hygiene](#project-hygiene) |
 | Snippets | `.md` files | Show evidence · Finish everything · Number hygiene, for a prompt-snippets extension | [snippets/](snippets/) |
 
 ### Keys and commands
@@ -112,6 +113,29 @@ with a reason that says what to do instead:
   yet, Obsidian vaults.
 
 Known gap: files created through `bash`/`powershell` are not checked. The rules and Done-Gate cover that.
+
+**Project Cleanup skill** (`skills/project-cleanup/`) cleans up an existing project once. In the
+project folder, ask Pi "clean up this project" or run `/skill:project-cleanup`. It works on a
+`cleanup/<date>` branch in five stages and pauses for your OK after each one:
+0. Preflight: clean git tree, asks whether the repo is for others (keeps a short README) or only for you, runs the report.
+1. Merges all md files into one AGENTS.md. Every fact is checked against the code: stale or contradicted facts
+   are dropped, facts about one spot in the code become a WHY comment there.
+2. Removes comments that restate code, file headers, TODOs, commented-out code. Comment-only: `verify-py`
+   proves the Python code is unchanged (same syntax tree without docstrings).
+3. Lists dead code and duplicates with evidence (ruff, vulture, grep). Deletes only what you approve.
+4. Summary, then merges into main and pushes if there is a remote. The branch stays for comparing or reverting.
+
+One commit per stage (per batch in Stage 2), so any stage can be reverted. Use **Sonnet or better** for real
+runs: the stages are mostly judgement. Haiku passes the test project but sometimes skips a pause. Stage 3 asks
+before installing ruff/vulture (`pip install ruff vulture`, in the project's venv if it has one).
+
+The report works on its own too (stdlib Python, output under 4 KB):
+```powershell
+python skills\project-cleanup\scripts\hygiene_report.py report C:\path\to\project
+```
+
+Done-Gate stays quiet when the agent's last line is `OK to continue?`, so it does not push a staged
+workflow past a pause.
 
 ## Parallel agents (one git worktree per task)
 

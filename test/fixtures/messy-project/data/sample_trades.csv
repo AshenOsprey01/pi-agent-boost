@@ -1,0 +1,3 @@
+trade_id,pair,side,notional,rate,mid,trade_date
+T1,EURUSD,buy,1000000,1.1011,1.1000,2026-01-08
+T2,USDJPY,sell,500000,149.20,149.35,2026-01-09
