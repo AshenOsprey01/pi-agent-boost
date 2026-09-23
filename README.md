@@ -8,14 +8,14 @@ Tested on Pi **0.84.4** and **0.87.1** (Windows 11).
 
 ## Tools
 
-| Tool | Type | What it does | Details |
+| Tool | Type | What it does | More |
 |---|---|---|---|
-| Done-Gate | extension | After the agent edits files, sends it back **once** to prove the change works and finish leftovers | [docs/done-gate.md](docs/done-gate.md) |
-| Data Peek | extension + Python | `data_peek` tool returns a compact (≤ 4 KB) profile of a file or SQL table/query, so the agent never guesses columns or units | [docs/data-peek.md](docs/data-peek.md) |
-| Prompt Sharpener | extension | `alt+e` rewrites your editor draft into a clear prompt with a fast model. Never adds facts, never sends | [docs/prompt-sharpener.md](docs/prompt-sharpener.md) |
-| Output Trimmer | extension | Caps large `bash`/`powershell` outputs at ~6 KB for the model and points to the full output file | [docs/output-trimmer.md](docs/output-trimmer.md) |
-| Handoff | extension | `/handoff <next task>` opens a new session with a drafted, focused prompt from the live conversation | [docs/handoff.md](docs/handoff.md) |
-| Auditor | subagent definition | Read-only, fresh-context numbers checker: recomputes key figures, checks FX/Rates traps | [docs/auditor.md](docs/auditor.md) |
+| Done-Gate | extension | After the agent edits files, sends it back **once** to prove the change works and finish leftovers | [Done-Gate](#done-gate) |
+| Data Peek | extension + Python | `data_peek` tool returns a compact (≤ 4 KB) profile of a file or SQL table/query, so the agent never guesses columns or units | [Data Peek](#data-peek) |
+| Prompt Sharpener | extension | `alt+e` rewrites your editor draft into a clear prompt with a fast model. Never adds facts, never sends | [Prompt Sharpener](#prompt-sharpener) |
+| Output Trimmer | extension | Caps large `bash`/`powershell` outputs at ~6 KB for the model and points to the full output file | [Output Trimmer](#output-trimmer) |
+| Handoff | extension | `/handoff <next task>` opens a new session with a drafted, focused prompt from the live conversation | [Handoff](#handoff) |
+| Auditor | subagent definition | Read-only, fresh-context numbers checker: recomputes key figures, checks FX/Rates traps | [Auditor](#auditor) |
 | Hygiene Rules | extension | Adds short project-hygiene rules (comments, one AGENTS.md, temporary PLAN/TODO, task branches) to every session | [Project hygiene](#project-hygiene) |
 | Hygiene Guard | extension | Blocks new stray md files, an AGENTS.md over the cap, and edits on main/master | [Project hygiene](#project-hygiene) |
 | Project Cleanup | skill + Python | One-time staged cleanup of a project: md files → one AGENTS.md, restating comments out, dead code out | [Project hygiene](#project-hygiene) |
@@ -89,6 +89,97 @@ $env:PI_BOOST_TRIM_BYTES = "12000"
 ```
 Keep `PI_BOOST_DB_URL` out of files you commit. If it holds a password, prefer a driver option
 that uses Windows authentication.
+
+## Done-Gate
+
+Output that looks done but doesn't work, and an agent that stops before the whole request is done,
+cost the most. After a run in which the agent changed files (`edit`/`write`), Done-Gate sends it back
+**once** with a `[done-gate]` message: prove the change works (exact command + output), finish anything
+still open, and drop comments that only restate the code. If it already verified, it replies with one
+`Verified: …` line.
+- Fires at most once per prompt you type. Its own follow-up doesn't reset it, so it can't loop.
+- Skips runs with no file edits (Q&A, read-only shell commands), runs aborted with Esc or ended in an
+  error, and runs whose last line is `OK to continue?` (a staged workflow waiting for your approval).
+- Also works in `-p` / JSON / RPC mode, so subagent workers verify their own work.
+- `alt+g` or `/done-gate` toggles it. The status bar shows `gate ✓` while it is on.
+
+## Data Peek
+
+Agents guess column names, types, units and date formats. The `data_peek` tool lets the data describe
+itself: one ≤ 4 KB profile instead of dumping a file or running many exploratory queries. Its
+description tells the model to profile a dataset before writing code or SQL for it.
+
+| Parameter | Meaning |
+|---|---|
+| `source` | File path (`.csv .tsv .parquet .xlsx .json .jsonl`) relative to cwd, or `"sql"` |
+| `query` | For `sql`: a table name (`schema.table` ok) or one `SELECT`/`WITH` statement |
+| `sample_rows` | Sample rows to show (default 5, max 20) |
+| `columns` | Only profile these columns (for wide tables) |
+
+The profile has the shape, duplicate-row count, and per column: dtype, null %, distinct count,
+min/max/mean or date range, top values or examples, plus flags for text that parses as dates and
+numbers stored as text. Then a few sample rows. Example (synthetic data):
+```
+shape: 201 rows x 10 columns
+duplicate rows: 1
+- trade_date  [str]  nulls 0%  distinct 58  range 2026-01-05 .. 2026-03-06  FLAG: text that parses as dates
+- ccy_pair  [str]  nulls 0%  distinct 3  top: GBPUSD 75, EURUSD 67, USDJPY 59
+- revenue_bps  [float64]  nulls 1%  distinct 177  min -1.98  max 7.99  mean 3.0797
+```
+**SQL mode** needs SQLAlchemy and `PI_BOOST_DB_URL`. The URL is never printed and errors are scrubbed.
+It is read-only: only a table name or a single `SELECT`/`WITH` is accepted (writes, `SELECT … INTO` and
+multiple statements are refused), and the connection is never committed. A missing library gives a
+clear `pip install …` message.
+
+## Prompt Sharpener
+
+Type a rough draft and press `alt+e`: a fast, cheap model rewrites it in place (Esc cancels while it
+runs). It never sends; you review and press Enter. `/sharpen <text>` does the same with the draft as
+the argument. `alt+shift+e` or `/unsharpen` puts the original back, and so does the editor undo `ctrl+-`.
+Interactive TUI only. About $0.001 per rewrite on Haiku 4.5.
+- Sends only the draft, the last user/assistant exchange (≤ ~3,000 characters, so "it"/"that" can be
+  resolved) and the cwd folder name.
+- Keeps intent, voice, language and every piece of information, including hunches. Never invents facts,
+  files, columns or numbers. Code, paths and identifiers stay verbatim. Short drafts stay short.
+- Model: `PI_BOOST_SHARPEN_MODEL` if set, else the newest available Haiku (skips `:batch` variants,
+  ranks `…-latest` aliases last), else the session model. The loader shows which one and why.
+```
+draft:  pls fix teh revenue chart it shows wrong totals for usdjpy i think its the join in rev_by_desk.sql?? also make the y axis in bps not %
+result: Fix the revenue chart. I suspect the join in rev_by_desk.sql is causing wrong totals for USDJPY. Change the y-axis from % to bps.
+```
+
+## Output Trimmer
+
+Pi's default tool-output cap is 50 KB (about 10k tokens), and DataFrame prints, SQL dumps and install
+logs rarely need more than their start and end. For `bash`/`powershell` results over
+`PI_BOOST_TRIM_BYTES` (8000), the model gets the head and tail (~3 KB each, cut on line boundaries)
+and a note with the path to the full output: Pi's own full-output file if Pi saved one, else
+`<temp>/pi-boost/<toolCallId>.txt` (removed after 7 days). `read` results are never trimmed.
+A 100 KB output becomes about 6 KB.
+
+## Handoff
+
+`/handoff <goal>` (e.g. `/handoff build the revenue chart for USDJPY`) drafts the opening prompt of a new
+session from the live conversation, so there is nothing to retype and no notes file to keep. The draft
+has `Goal`, `Context` (what was done, decisions with reasons, constraints, verified facts), `Files` and
+`Open items`. It leaves out dead ends, never invents facts, and lists open choices instead of deciding them.
+You edit the draft in a dialog (Esc cancels), then a new session opens, linked to the old one, with the
+draft in the editor. Nothing is sent until you press Enter. Interactive TUI only.
+
+Derived from Pi's example `handoff.ts` (MIT), with a richer prompt, the optional `PI_BOOST_HANDOFF_MODEL`,
+visible errors, and a fallback (draft into the current editor) if `ctx.newSession` is missing.
+
+## Auditor
+
+Wrong numbers are the most expensive failure in dashboard and revenue work, and the agent that wrote the
+code tends to trust it. The Auditor (`agents/auditor.md`) is a read-only subagent with a fresh context. It
+picks the 2–3 figures that matter most, recomputes them from the raw data with its own code, checks the
+code against FX/Rates traps (quote direction, notional currency, pip size, bps/%/decimal, signs, day count,
+date filters and T+2, cut-offs, join double counting, nulls, stale rates, duplicates), and replies with
+`PASS`/`FAIL`/`UNSURE` per figure, the exact commands as evidence, and issues ranked by severity with
+file:line and a fix. It never edits files. Install it as described under [Install](#install), then ask
+e.g. *"Use the auditor to check the numbers in revenue_by_pair.csv."* A Sonnet-class model is
+recommended (Haiku's file:line references can be one line off).
 
 ## Project hygiene
 
@@ -174,7 +265,9 @@ Every work-specific spot is marked `ADAPT:` in the code. In order of likelihood:
 3. **Sharpener model:** if auto-pick doesn't find your gateway's Haiku, set `PI_BOOST_SHARPEN_MODEL`
    to the ID shown in `/model`.
 4. **Auditor frontmatter:** `agents/auditor.md` uses the format of Pi's example subagent
-   extension. Match your subagent format. Optionally uncomment `model:` with a work model ID.
+   extension. Match your subagent format; the body carries over unchanged. Optionally uncomment
+   `model:` with a work model ID. If Python has another name or the DB is only reachable through a
+   client, add one line about it to its Rules section.
 5. **Custom tool names:** if work has custom file-writing tools, add them to `MUTATING_TOOLS` in
    `extensions/done-gate.ts`. Custom shell tools go in `SHELL_TOOLS` in `extensions/output-trimmer.ts`.
 
@@ -190,8 +283,40 @@ notice instead of crashing.
 
 ## Tests
 
-All tests are in `test/` and use synthetic data only. See the "Tested" section of each page in
-`docs/` for how to run them.
+All tests are in `test/` and use synthetic data only. Unit tests (free, run from the repo folder):
+```powershell
+node test/done-gate.test.ts; node test/hygiene-rules.test.ts; node test/hygiene-guard.test.ts
+```
+```powershell
+node --import ./test/stub-pi.mjs test/prompt-sharpener.test.ts; node --import ./test/stub-pi.mjs test/output-trimmer.test.ts
+```
+```powershell
+python test/test_hygiene_report.py; python test/test_profile.py
+```
+`test_profile.py` needs pandas, sqlalchemy and pyarrow (e.g. in a `.venv`); `python test/make_fixtures.py`
+regenerates its data. Real-model scenarios (Git Bash, a few cents each on Haiku; `old` runs Pi 0.84 from a
+local `.compat/` install): `test/run-scenario.sh`, `test/done_gate_rpc.py`, `test/auditor-test.sh`,
+`test/cleanup_rpc.py` + `test/test_cleanup.py check`, and `test/sharpen-harness.ts` / `test/handoff-harness.ts`
+loaded with `-e`. Usage is at the top of each script. In Git Bash, set `MSYS_NO_PATHCONV=1` before
+`pi -p "/command …"`, or the `/command` argument is turned into a Windows path.
+
+## Manual tests
+
+Interactive parts that the scripts can't check. Start `pi` in any folder after installing:
+1. **Done-Gate:** the status bar shows `gate ✓`. `alt+g` hides it ("Done-Gate off"), `alt+g` again brings it back.
+2. **Done-Gate:** ask for a small file edit. You see one `[done-gate]` message, then a verification, then it stops.
+3. **Sharpener:** type `pls fix teh chart its wrong` and press `alt+e`. A loader names the model, the editor
+   gets a clean prompt, nothing is sent.
+4. **Sharpener:** `alt+shift+e` brings the original back. `alt+e` again, then `ctrl+-`: the undo also reverts it.
+5. **Sharpener:** `alt+e` then Esc right away: "Cancelled: draft unchanged".
+6. **Sharpener:** `/sharpen whats the diffrence between act/360 and act/365` puts a clean question in the editor.
+7. **Handoff:** after a short chat, `/handoff build the chart for USDJPY`. A loader, then an edit dialog,
+   then a new session with the draft in the editor (not sent).
+8. **Snippets:** copy them as described under [Install](#install), `/reload`, open the snippet menu. The three
+   new ones show under append after your own, and toggling one adds its text after your prompt.
+9. **Hygiene Guard:** in a git repo on `main`, ask Pi to change a file. The edit is blocked, and the agent
+   creates a task branch and retries.
+10. **Project Cleanup:** type `/skill:` and check that `project-cleanup` is offered.
 
 ## License
 
