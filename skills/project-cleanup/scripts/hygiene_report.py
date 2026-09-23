@@ -154,7 +154,7 @@ def tool_findings(root: Path) -> list[str]:
     lines = []
     excludes = ",".join(sorted(SKIP_DIRS))
     for name, args in (("ruff", ["check", "--select", "F401,F811,F841", "--output-format", "concise", "--exclude", excludes, str(root)]),
-                       ("vulture", [str(root), "--min-confidence", "80", "--exclude", excludes])):
+                       ("vulture", [str(root), "--min-confidence", "60", "--exclude", excludes])):
         cmd = [shutil.which(name)] if shutil.which(name) else ([sys.executable, "-m", name] if importlib.util.find_spec(name) else None)
         if not cmd:
             lines.append(f"{name}: not installed")
