@@ -5,7 +5,6 @@ Pass criteria printed at the end. Uses Haiku; costs a few cents at most.
 """
 
 import json
-import os
 import shutil
 import subprocess
 import sys

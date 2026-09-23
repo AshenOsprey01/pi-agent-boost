@@ -223,7 +223,6 @@ def looks_date_text(s):
 
 
 def profile_column(name, s):
-    import pandas as pd
     from pandas.api import types as t
 
     n = len(s)
