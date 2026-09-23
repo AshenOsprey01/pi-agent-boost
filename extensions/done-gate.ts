@@ -1,20 +1,5 @@
-/**
- * Done-Gate: after the agent edits files, send it back ONCE to prove the change
- * works and to finish anything from the request it skipped.
- *
- * Trigger:   automatic. When an agent run ends and the run edited files
- *            (successful `edit` or `write` tool results), a single follow-up
- *            message "[done-gate] ..." is queued. It fires at most once per
- *            user prompt, so it cannot loop.
- * Skips:     gate off, no edits, already fired for this prompt, run aborted
- *            (Esc) or ended in an error.
- * Controls:  /done-gate or alt+g toggles on/off. Status bar shows "gate ✓" when on.
- * Config:    PI_BOOST_DONE_GATE=off  starts with the gate disabled
- *            (useful for subagent processes that should not self-verify).
- * ADAPT:     MUTATING_TOOLS: add any custom file-writing tool names used at work.
- *
- * Works on Pi 0.84.x and 0.87.x (uses only agent_end + sendUserMessage followUp).
- */
+// Uses only agent_end + a followUp message because agent_before_settle does not exist on Pi 0.84.
+// Fires at most once per user prompt, so it cannot loop.
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 // Tools whose successful result means "files changed". bash/powershell are

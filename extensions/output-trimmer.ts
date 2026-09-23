@@ -1,21 +1,4 @@
-/**
- * Output Trimmer: caps large bash/powershell outputs before the model sees
- * them, and saves the full output to a temp file the agent can `read`.
- * DataFrame prints, SQL dumps, and install logs otherwise fill the context
- * (Pi's own cap is 50 KB, about 10k tokens per call).
- *
- * Trigger:   automatic, on every `bash` / `powershell` tool result whose text
- *            is larger than PI_BOOST_TRIM_BYTES. Keeps the head (~3 KB) and the
- *            tail (~3 KB), cut on line boundaries, with a note in between:
- *            "… [output-trimmer: N lines / X KB omitted — full output: <path> — use read to see more]"
- * Never:     touches `read` results (the agent asked for those explicitly),
- *            changes isError, or drops Pi's own truncation note.
- * Files:     <os tmpdir>/pi-boost/<toolCallId>.txt (files older than 7 days are
- *            removed at session start). If Pi already saved a full-output file
- *            (its 50 KB cap), the note points to Pi's file instead.
- * Config:    PI_BOOST_TRIM_BYTES  threshold in bytes (default 8000; 0 disables)
- * ADAPT:     SHELL_TOOLS: add any custom shell tool names used at work.
- */
+// `read` results are never trimmed: the agent asked for those explicitly.
 import { mkdirSync, readdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -50,10 +33,7 @@ function takeLines(lines: string[], budget: number, fromEnd: boolean): string[] 
 	return fromEnd ? out.reverse() : out;
 }
 
-/**
- * Pure trim (exported for tests). Returns null when no trimming is needed.
- * `pathFor` is called only when trimming happens, and returns the path to show.
- */
+/** Pure trim (exported for tests). Null if no trim is needed; `pathFor` is only called when trimming. */
 export function trimText(text: string, limit: number, pathFor: () => string): { text: string; omittedLines: number } | null {
 	if (limit <= 0 || bytes(text) <= limit) return null;
 	const noteMatch = text.match(PI_NOTE);
@@ -85,7 +65,7 @@ function cleanOldFiles() {
 export default function outputTrimmer(pi: ExtensionAPI) {
 	const raw = process.env.PI_BOOST_TRIM_BYTES;
 	const limit = raw !== undefined && raw !== "" && Number.isFinite(Number(raw)) ? Number(raw) : 8000;
-	if (limit <= 0) return; // disabled
+	if (limit <= 0) return;
 
 	pi.on("session_start", () => cleanOldFiles());
 

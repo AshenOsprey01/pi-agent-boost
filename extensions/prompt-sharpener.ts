@@ -1,24 +1,7 @@
-/**
- * Prompt Sharpener: rewrite the editor draft into a clear, well-structured
- * prompt with a fast, cheap model. Keeps your intent and never adds facts.
- * Never auto-sends: you review the result and press Enter yourself.
- *
- * Trigger:   alt+e sharpens the editor draft; /sharpen <draft text> sharpens
- *            the given text (typing a command submits the editor, so the
- *            command takes the draft as its argument). Interactive TUI only.
- * Undo:      alt+shift+e or /unsharpen puts your original draft back
- *            (the editor's own undo, ctrl+-, also works).
- * Context:   the draft, the last user/assistant exchange (≤ ~3,000 chars,
- *            only so "it"/"that" can be resolved), and the cwd folder name.
- * Model:     1. PI_BOOST_SHARPEN_MODEL="provider/modelId" if set and found
- *            2. else the newest available model whose id contains "haiku"
- *            3. else the current session model
- * Config:    PI_BOOST_SHARPEN_MODEL (optional)
- * ADAPT:     at work, set PI_BOOST_SHARPEN_MODEL to the gateway's Haiku 4.5 id
- *            if auto-pick doesn't find it (check the id with /model).
- *
- * Works on Pi 0.84.x and 0.87.x (uses ctx.modelRegistry.complete, feature-detected).
- */
+// Never auto-sends: the user reviews the rewrite and presses Enter.
+// /sharpen takes the draft as its argument because submitting a command clears the editor.
+// ADAPT: at work, set PI_BOOST_SHARPEN_MODEL to the gateway's Haiku 4.5 id
+//        if auto-pick doesn't find it (check the id with /model).
 import { basename } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { BorderedLoader } from "@earendil-works/pi-coding-agent";
@@ -70,10 +53,7 @@ function compareVersions(a: number[], b: number[]): number {
 	return 0;
 }
 
-/**
- * Pure model choice (exported for tests). Returns the model and why it was picked.
- * Skips ":batch"-style variants. Prefers the current model's provider on ties.
- */
+/** Pure model choice and its reason (exported for tests). Skips ":batch"-style variants (ids with ":"). */
 export function pickModel<M extends AnyModel>(
 	available: M[],
 	current: M | undefined,

@@ -1,25 +1,7 @@
 /**
- * Handoff: `/handoff <next task>` starts a new, focused session with a drafted
- * prompt built from the live conversation. You don't retype context or keep
- * notes files.
- *
- * Trigger:   /handoff <goal for the new session>   (interactive TUI only)
- * Flow:      1. the conversation (tool results already truncated by Pi) plus your goal
- *               go to a model, which drafts a self-contained prompt
- *            2. you review/edit it in a dialog (Esc cancels)
- *            3. a new session opens (linked to this one as its parent) with the
- *               draft in the editor. Nothing is sent until you press Enter.
- * Carries:   goal, decisions and why, constraints/preferences, verified facts,
- *            files involved, open items. Omits dead ends and chatter.
- * Config:    PI_BOOST_HANDOFF_MODEL="provider/modelId"  optional cheaper model
- *            (default: the current session model, because quality matters here)
- * ADAPT:     none expected. If ctx.newSession is missing (older Pi), the draft is
- *            put in the current editor with a note to start a new session.
- *
  * Derived from Pi's example extension `examples/extensions/handoff.ts`
  * (https://github.com/earendil-works/pi, MIT License, package author Mario Zechner).
- * Changes: a richer system
- * prompt, optional model override, visible errors, and a fallback without newSession.
+ * Changes: a richer system prompt, optional model override, visible errors, and a fallback without newSession.
  */
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import { type Message, uuidv7 } from "@earendil-works/pi-ai";
@@ -87,7 +69,7 @@ export function getHandoffMessages(branch: SessionEntry[]): AgentMessage[] {
 	return kept.map(entryToMessage).filter((m) => m !== undefined);
 }
 
-/** Pick PI_BOOST_HANDOFF_MODEL if set and found, else the current model. */
+/** Pick PI_BOOST_HANDOFF_MODEL if set and found, else the current model (draft quality matters more than cost). */
 function pickModel(ctx: { model?: any; modelRegistry: any }): any {
 	const spec = process.env.PI_BOOST_HANDOFF_MODEL;
 	const slash = spec ? spec.indexOf("/") : -1;

@@ -1,22 +1,3 @@
-"""data_peek profiler: print a compact, plain-text profile of a dataset.
-
-Called by the data_peek Pi tool (index.ts), but also works on its own:
-    python profile.py --source data.csv [--sample-rows 5] [--columns a b]
-    python profile.py --source sql --query my_table
-    python profile.py --source sql --query "SELECT ... FROM ..."
-
-Sources: .csv / .tsv / .txt, .parquet (needs pyarrow), .xlsx / .xls (needs openpyxl),
-.json / .jsonl, or "sql" (needs SQLAlchemy + env PI_BOOST_DB_URL).
-Output is capped at about 4 KB. Exit code 1 + a message on stderr on failure.
-
-Env vars:
-    PI_BOOST_PEEK_MAX_ROWS  max file rows to read (default 1,000,000)
-    PI_BOOST_PEEK_SQL_ROWS  max SQL rows to fetch for profiling (default 50,000)
-    PI_BOOST_DB_URL         SQLAlchemy URL for SQL mode (never printed)
-
-Standard library + pandas. SQLAlchemy is imported only in SQL mode.
-"""
-
 import argparse
 import os
 import re
@@ -34,7 +15,6 @@ class PeekError(Exception):
     """A clear, user-facing error (printed without a traceback)."""
 
 
-# ----------------------------------------------------------------------------- loading
 
 
 def env_int(name, default):
@@ -98,7 +78,6 @@ def cap(df, max_rows):
     return (df.iloc[:max_rows] if capped else df), total, capped
 
 
-# ----------------------------------------------------------------------------- SQL
 
 FORBIDDEN = re.compile(
     r"\b(insert|update|delete|merge|drop|alter|create|truncate|grant|revoke|exec|execute|call|into|replace|upsert|copy|attach|pragma)\b",
@@ -194,7 +173,6 @@ def load_sql(query, max_rows):
     return df, total, (total or 0) > len(df), kind
 
 
-# ----------------------------------------------------------------------------- profiling
 
 
 def fmt_num(x):
@@ -345,7 +323,6 @@ def build_report(df, total, capped, kind, label, sample_rows, columns):
     return out
 
 
-# ----------------------------------------------------------------------------- main
 
 
 def main(argv=None):

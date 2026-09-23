@@ -1,22 +1,5 @@
-/**
- * Data Peek: a `data_peek` tool that returns a compact (≤ ~4 KB) profile of a
- * data file or a SQL table/query, so the agent never guesses column names,
- * types, units, or conventions. One call replaces dumping files or many
- * exploratory queries, which saves tokens.
- *
- * Trigger:   the model calls `data_peek` (the tool description tells it to
- *            profile before writing code or SQL that touches a dataset).
- * Sources:   .csv .tsv .parquet .xlsx .json .jsonl, or source="sql" + query
- *            (table name or a single SELECT/WITH; anything else is refused).
- * Config:    PI_BOOST_PYTHON          Python with pandas (default: python / python3)
- *            PI_BOOST_DB_URL          SQLAlchemy URL for SQL mode (never printed)
- *            PI_BOOST_PEEK_MAX_ROWS   max file rows read (default 1,000,000)
- *            PI_BOOST_PEEK_SQL_ROWS   max SQL rows fetched (default 50,000)
- * ADAPT:     the DB connection block in profile.py (`# ADAPT: work DB`), and
- *            PI_BOOST_PYTHON if the work Python/venv is not on PATH.
- *
- * The heavy lifting is in profile.py (standard library + pandas).
- */
+// ADAPT: the DB connection block in profile.py (`# ADAPT: work DB`), and
+//        PI_BOOST_PYTHON if the work Python/venv is not on PATH.
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
