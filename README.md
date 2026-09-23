@@ -254,6 +254,17 @@ git worktree remove ..\fx-dashboard-usdjpy
 - Hygiene Guard checks the branch of each file's own folder, so worktrees on task branches are allowed
   while the main folder stays protected.
 
+## Work setup (global AGENTS.md)
+
+Your global `~\.pi\agent\AGENTS.md` is loaded into every session, so it must not contradict the
+hygiene rules. Open it with `notepad "$HOME\.pi\agent\AGENTS.md"` and:
+- Where it asks for a `PLAN.md` / `TODO.md`, add: *"Both are temporary: delete them when the task is done."*
+- Where it asks for a comment at the top of every file or extension, drop that part
+  (e.g. "One file, one job, a comment at the top saying what it does." → "One file, one job.").
+- Remove any rule that asks for extra md files (DECISIONS, CHANGELOG, notes...) or for explanatory comments.
+
+Run `/reload` in Pi afterwards.
+
 ## Adapting at work (ADAPT checklist)
 
 Every work-specific spot is marked `ADAPT:` in the code. In order of likelihood:
