@@ -17,6 +17,7 @@ Tested on Pi **0.84.4** and **0.87.1** (Windows 11).
 | Handoff | extension | `/handoff <next task>` opens a new session with a drafted, focused prompt from the live conversation | [docs/handoff.md](docs/handoff.md) |
 | Auditor | subagent definition | Read-only, fresh-context numbers checker: recomputes key figures, checks FX/Rates traps | [docs/auditor.md](docs/auditor.md) |
 | Hygiene Rules | extension | Adds short project-hygiene rules (comments, one AGENTS.md, temporary PLAN/TODO, task branches) to every session | [Project hygiene](#project-hygiene) |
+| Hygiene Guard | extension | Blocks new stray md files, an AGENTS.md over the cap, and edits on main/master | [Project hygiene](#project-hygiene) |
 | Snippets | `.md` files | Show evidence · Finish everything · Number hygiene, for a prompt-snippets extension | [snippets/](snippets/) |
 
 ### Keys and commands
@@ -75,6 +76,7 @@ No config files. Everything is optional, set through environment variables start
 | `PI_BOOST_TRIM_BYTES` | Output Trimmer | 8000 | Trim shell outputs larger than this; `0` disables |
 | `PI_BOOST_HANDOFF_MODEL` | Handoff | session model | `provider/modelId` of a cheaper drafting model |
 | `PI_BOOST_RULES` | Hygiene Rules | on | `off` stops adding the hygiene rules to the system prompt |
+| `PI_BOOST_GUARD` | Hygiene Guard | on | `off` disables all three guard checks |
 
 Set one for your user account (new terminals pick it up; restart Pi afterwards):
 ```powershell
@@ -98,6 +100,18 @@ of every turn: comment only WHY / business rules / warnings, the only lasting md
 (max 200 lines / 16,000 characters), PLAN.md and TODO.md are temporary, one place per fact, remove
 dead code, and work on a task branch instead of main. Pi packages cannot ship an AGENTS.md, so the
 rules come from an extension.
+
+**Hygiene Guard** (`extensions/hygiene-guard.ts`) checks every `write`/`edit` call and blocks it
+with a reason that says what to do instead:
+- **New md file:** only `AGENTS.md`, `PLAN.md` and `TODO.md` may be created. Editing an existing md
+  file is fine. Always allowed: `SKILL.md` and anything in a skill folder, files under a `prompts`,
+  `snippets` or `agents` folder, and anything in an Obsidian vault (a parent folder has `.obsidian`).
+- **AGENTS.md cap:** the resulting file would be over 200 lines or 16,000 characters.
+- **main/master:** the file is in a git repo on `main` or `master`. The agent is told to run
+  `git switch -c <task>` first. Not blocked: non-git folders, detached HEAD, a repo with no commits
+  yet, Obsidian vaults.
+
+Known gap: files created through `bash`/`powershell` are not checked. The rules and Done-Gate cover that.
 
 ## Adapting at work (ADAPT checklist)
 
