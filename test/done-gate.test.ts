@@ -15,4 +15,5 @@ assert.equal(shouldFire(base, []), true, "no assistant message: still fires");
 assert.ok(MUTATING_TOOLS.has("edit") && MUTATING_TOOLS.has("write") && !MUTATING_TOOLS.has("bash"));
 assert.match(GATE_TEXT, /\(3\) remove any comments you added that only restate the code/, "hygiene clause");
 assert.ok(GATE_TEXT.includes("delete PLAN.md/TODO.md"));
+assert.ok(GATE_TEXT.includes("wait for my approval, do not continue"), "respects pauses");
 console.log("done-gate: all unit tests passed");

@@ -27,6 +27,7 @@ export const GATE_TEXT =
 	"and its output as proof; (2) list anything from my request that is not done yet, and do it now; " +
 	"(3) remove any comments you added that only restate the code; if the task is fully done, move lasting " +
 	"facts into AGENTS.md or WHY comments and delete PLAN.md/TODO.md. " +
+	"If you stopped to wait for my approval, do not continue: only repeat your question. " +
 	'If you already verified after your last change and everything is done, reply only with a one-line ' +
 	'"Verified: <evidence>" and a one-line done list.';
 
