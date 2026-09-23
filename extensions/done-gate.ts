@@ -27,7 +27,6 @@ export const GATE_TEXT =
 	"and its output as proof; (2) list anything from my request that is not done yet, and do it now; " +
 	"(3) remove any comments you added that only restate the code; if the task is fully done, move lasting " +
 	"facts into AGENTS.md or WHY comments and delete PLAN.md/TODO.md. " +
-	"If you stopped to wait for my approval, do not continue: only repeat your question. " +
 	'If you already verified after your last change and everything is done, reply only with a one-line ' +
 	'"Verified: <evidence>" and a one-line done list.';
 
@@ -38,11 +37,18 @@ export interface GateState {
 }
 
 /** Pure decision helper (exported for tests). */
+// A staged workflow (e.g. the project-cleanup skill) ends a turn with this line to wait for approval.
+// The gate's "do it now" would push the agent past that pause, so it stays quiet.
+export const PAUSE_LINE = "OK to continue?";
+
 export function shouldFire(state: GateState, messages: readonly unknown[]): boolean {
 	if (!state.enabled || !state.edited || state.fired) return false;
 	const last = [...messages].reverse().find((m: any) => m?.role === "assistant") as any;
 	const stop = last?.stopReason;
 	if (stop === "aborted" || stop === "error") return false;
+	const content = Array.isArray(last?.content) ? last.content : [];
+	const text = content.filter((c: any) => c?.type === "text").map((c: any) => c.text).join("").trim();
+	if (text.replace(/[*_`]/g, "").trimEnd().endsWith(PAUSE_LINE)) return false;
 	return true;
 }
 
