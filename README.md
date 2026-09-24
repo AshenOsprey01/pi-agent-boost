@@ -13,6 +13,7 @@ Tested on Pi **0.84.4** and **0.87.1** (Windows 11).
 | Done-Gate | extension | After the agent edits files, sends it back **once** to prove the change works and finish leftovers | [Done-Gate](#done-gate) |
 | Data Peek | extension + Python | `data_peek` tool returns a compact (≤ 4 KB) profile of a file or SQL table/query, so the agent never guesses columns or units | [Data Peek](#data-peek) |
 | Prompt Sharpener | extension | `alt+e` rewrites your editor draft into a clear prompt with a fast model. Never adds facts, never sends | [Prompt Sharpener](#prompt-sharpener) |
+| Outlook Reader | extension + PowerShell | `outlook_search` / `outlook_read` / `outlook_folders`: find and read work emails in any folder, subfolder or Sent Items (classic Outlook, read-only) | [Outlook Reader](#outlook-reader) |
 | Output Trimmer | extension | Caps large `bash`/`powershell` outputs at ~6 KB for the model and points to the full output file | [Output Trimmer](#output-trimmer) |
 | Handoff | extension | `/handoff <next task>` opens a new session with a drafted, focused prompt from the live conversation | [Handoff](#handoff) |
 | Auditor | subagent definition | Read-only, fresh-context numbers checker: recomputes key figures, checks FX/Rates traps | [Auditor](#auditor) |
@@ -74,6 +75,7 @@ No config files. Everything is optional, set through environment variables start
 | `PI_BOOST_DB_URL` | Data Peek | not set | SQLAlchemy URL for SQL mode. Never printed, scrubbed from errors |
 | `PI_BOOST_PEEK_MAX_ROWS` | Data Peek | 1,000,000 | Max file rows read for a profile |
 | `PI_BOOST_PEEK_SQL_ROWS` | Data Peek | 50,000 | Max SQL rows fetched for a profile |
+| `PI_BOOST_POWERSHELL` | Outlook Reader | `powershell.exe` | PowerShell used to talk to Outlook, e.g. `pwsh.exe` |
 | `PI_BOOST_TRIM_BYTES` | Output Trimmer | 8000 | Trim shell outputs larger than this; `0` disables |
 | `PI_BOOST_HANDOFF_MODEL` | Handoff | session model | `provider/modelId` of a cheaper drafting model |
 | `PI_BOOST_RULES` | Hygiene Rules | on | `off` stops adding the hygiene rules to the system prompt |
@@ -130,6 +132,35 @@ duplicate rows: 1
 It is read-only: only a table name or a single `SELECT`/`WITH` is accepted (writes, `SELECT … INTO` and
 multiple statements are refused), and the connection is never committed. A missing library gives a
 clear `pip install …` message.
+
+## Outlook Reader
+
+Ask things like *"find the email I sent Jonas about the Q3 report last week"* or *"summarise the last
+5 emails in Inbox/Clients/ACME"*, and the agent searches your mailbox itself. No passwords, Azure app
+or IT approval needed: a PowerShell script (`extensions/outlook/outlook.ps1`) drives the **classic
+Outlook** desktop app that is already signed in. Windows only.
+
+| Tool | Parameters | Returns |
+|---|---|---|
+| `outlook_folders` | `mailbox`, `max_depth` | Folder paths with item counts, all mailboxes incl. shared ones |
+| `outlook_search` | `folder`, `include_subfolders`, `from`, `to`, `subject`, `text`, `since`, `until`, `limit` (10, max 50) | Short ids (`m1`, `m2`...), date, sender, recipients, subject, folder, attachment count, 150-char preview |
+| `outlook_read` | `id`, `max_chars` (8000), `save_to` | Headers, attachment names, plain-text body. `save_to` writes the full email as Markdown with frontmatter (a `.md` path, or a folder: `YYYY-MM-DD subject.md`), never overwriting |
+
+- `folder`: `Inbox` (default), `Sent`, `Drafts`, `Deleted`, `Junk`, `all` (whole mailbox), a path like
+  `Inbox/Clients/ACME`, or a full path from `outlook_folders`. The aliases work on non-English Outlook too.
+- Filters are case-insensitive "contains" matches combined with AND. `to` matches display names.
+  A date-only `until` includes that whole day.
+- **Read-only:** never sends, moves, deletes or marks emails as read. It never closes Outlook either.
+- Ids reset on `/reload`: the agent just searches again.
+- Does **not** work with *new Outlook*: switch its toggle off (top right in Outlook).
+- **Check your company's policy first:** the text of emails the agent reads goes to your model provider.
+- If Outlook shows *"A program is trying to access e-mail address information"*, your antivirus is not
+  seen as up to date or IT policy is strict. Allow it, or ask IT.
+
+Check on the work PC that classic Outlook can be automated (`True` means yes):
+```powershell
+Test-Path "Registry::HKEY_CLASSES_ROOT\Outlook.Application"
+```
 
 ## Prompt Sharpener
 
@@ -279,7 +310,9 @@ Every work-specific spot is marked `ADAPT:` in the code. In order of likelihood:
    extension. Match your subagent format; the body carries over unchanged. Optionally uncomment
    `model:` with a work model ID. If Python has another name or the DB is only reachable through a
    client, add one line about it to its Rules section.
-5. **Custom tool names:** if work has custom file-writing tools, add them to `MUTATING_TOOLS` in
+5. **Outlook PowerShell:** if `powershell.exe` is blocked but `pwsh.exe` is allowed, set `PI_BOOST_POWERSHELL`.
+   If scripts are blocked by policy even with `-ExecutionPolicy Bypass`, ask IT.
+6. **Custom tool names:** if work has custom file-writing tools, add them to `MUTATING_TOOLS` in
    `extensions/done-gate.ts`. Custom shell tools go in `SHELL_TOOLS` in `extensions/output-trimmer.ts`.
 
 Nothing else should need changing. If a Pi API is missing on an older version, the tool shows a
@@ -291,6 +324,7 @@ notice instead of crashing.
 - Model IDs as shown in `/model` (especially Haiku 4.5)
 - Database type and Python driver
 - Frontmatter fields of an existing agent file (e.g. `explore`)
+- Outlook Reader: result of the `Test-Path` check above, and whether a security prompt appeared
 
 ## Tests
 
@@ -301,6 +335,10 @@ node test/done-gate.test.ts; node test/hygiene-rules.test.ts; node test/hygiene-
 ```powershell
 node --import ./test/stub-pi.mjs test/prompt-sharpener.test.ts; node --import ./test/stub-pi.mjs test/output-trimmer.test.ts
 ```
+```powershell
+node --import ./test/stub-pi.mjs test/outlook.test.ts
+```
+The Outlook test needs no Outlook. On a PC with classic Outlook it also lists your real folders (read-only).
 ```powershell
 python test/test_hygiene_report.py; python test/test_profile.py
 ```
@@ -328,6 +366,9 @@ Interactive parts that the scripts can't check. Start `pi` in any folder after i
 9. **Hygiene Guard:** in a git repo on `main`, ask Pi to change a file. The edit is blocked, and the agent
    creates a task branch and retries.
 10. **Project Cleanup:** type `/skill:` and check that `project-cleanup` is offered.
+11. **Outlook Reader** (work PC, classic Outlook open): ask *"list my Outlook folders"*, then *"find the last 3
+    emails in <a subfolder>"*, *"find the last email I sent"* (uses `Sent`), *"read m1"*, and
+    *"save m1 to notes"*. Check that `notes\YYYY-MM-DD subject.md` exists and nothing changed in Outlook.
 
 ## License
 
