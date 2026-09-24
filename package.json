@@ -9,7 +9,8 @@
   "pi": {
     "extensions": [
       "./extensions/*.ts",
-      "./extensions/data-peek/index.ts"
+      "./extensions/data-peek/index.ts",
+      "./extensions/outlook/index.ts"
     ],
     "skills": [
       "./skills"
